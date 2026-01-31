@@ -1,0 +1,33 @@
+# =============================================
+# DEVELOPMENT PROFILE CONFIGURATION
+# =============================================
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # Use H2 for development
+  datasource:
+    url: jdbc:h2:mem:expense_tracker_dev
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+logging:
+  level:
+    com.expensetracker: DEBUG
+    org.springframework.security: DEBUG
