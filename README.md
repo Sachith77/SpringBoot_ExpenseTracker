@@ -16,13 +16,8 @@ A robust, production-grade RESTful API for personal expense tracking and budget 
 - [Tech Stack](#-tech-stack)
 - [Architecture](#-architecture)
 - [Getting Started](#-getting-started)
-- [Configuration](#-configuration)
-- [API Documentation](#-api-documentation)
-  - [Authentication](#1-authentication-endpoints)
-  - [Expenses](#2-expense-endpoints)
-  - [Categories](#3-category-endpoints)
-  - [Analytics](#4-analytics-endpoints)
-  - [User Profile](#5-user-profile-endpoints)
+- [API Endpoints](#-api-endpoints)
+- [Testing with Postman](#-testing-with-postman)
 - [Error Handling](#-error-handling)
 - [Security](#-security)
 - [Contributing](#-contributing)
@@ -126,539 +121,346 @@ src/main/java/com/expensetracker/
 
 ---
 
-## ⚙ Configuration
-
-| Property | Description | Default |
-|----------|-------------|---------|
-| `server.port` | Application port | `8080` |
-| `spring.data.mongodb.uri` | MongoDB connection string | Required |
-| `jwt.secret` | JWT signing secret | Required |
-| `jwt.expiration` | Access token expiry (ms) | `86400000` |
-
----
-
-## 📚 API Documentation
+## 📚 API Endpoints
 
 ### Base URL
 ```
-http://localhost:8080/api
+http://localhost:8080
 ```
 
-### Authentication
-All endpoints except `/api/auth/**` require a valid JWT token in the Authorization header:
+### Quick Reference
+
+| # | Method | Endpoint | Description | Auth |
+|---|--------|----------|-------------|------|
+| 1 | POST | `/api/auth/register` | Register new user | ❌ |
+| 2 | POST | `/api/auth/login` | Login user | ❌ |
+| 3 | GET | `/api/users/me` | Get current user profile | ✅ |
+| 4 | POST | `/api/categories` | Create category | ✅ |
+| 5 | GET | `/api/categories` | Get all categories | ✅ |
+| 6 | POST | `/api/expenses` | Create expense | ✅ |
+| 7 | GET | `/api/expenses` | Get all expenses | ✅ |
+| 8 | PUT | `/api/expenses/{id}` | Update expense | ✅ |
+| 9 | DELETE | `/api/expenses/{id}` | Delete expense | ✅ |
+| 10 | GET | `/api/analytics/summary` | Get analytics summary | ✅ |
+
+---
+
+## 🧪 Testing with Postman
+
+### Step 1: Register a New User
+
+```http
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
 ```
+
+```json
+{
+  "username": "johndoe",
+  "email": "john.doe@example.com",
+  "password": "SecurePass123",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+```
+
+> ⚠️ **Copy the `accessToken` from the response for all subsequent requests!**
+
+---
+
+### Step 2: Login User
+
+```http
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "usernameOrEmail": "johndoe",
+  "password": "SecurePass123"
+}
+```
+
+---
+
+### Step 3: Get Current User Profile
+
+```http
+GET http://localhost:8080/api/users/me
 Authorization: Bearer <your_access_token>
 ```
 
 ---
 
-## 1. Authentication Endpoints
-
-### 1.1 Register User
-
-Creates a new user account.
+### Step 4: Create Food Category
 
 ```http
-POST /api/auth/register
+POST http://localhost:8080/api/categories
+Authorization: Bearer <your_access_token>
+Content-Type: application/json
 ```
 
-**Request Body:**
 ```json
 {
-    "username": "johndoe",
-    "email": "john.doe@example.com",
-    "password": "SecurePass123!",
-    "firstName": "John",
-    "lastName": "Doe"
+  "name": "Food category",
+  "description": "Food and restaurant expenses",
+  "color": "#FF5733",
+  "icon": "restaurant"
 }
 ```
 
-| Field | Type | Required | Validation |
-|-------|------|----------|------------|
-| `username` | string | ✅ | 3-50 characters |
-| `email` | string | ✅ | Valid email format, max 100 chars |
-| `password` | string | ✅ | 8-100 characters |
-| `firstName` | string | ❌ | Max 50 characters |
-| `lastName` | string | ❌ | Max 50 characters |
+> 📝 **Save the category `id` from response - needed for expenses!**
 
-**Success Response:** `201 Created`
+---
+
+### Step 5: Create Transportation Category
+
+```http
+POST http://localhost:8080/api/categories
+Authorization: Bearer <your_access_token>
+Content-Type: application/json
+```
+
 ```json
 {
-    "success": true,
-    "message": "User registered successfully",
-    "data": {
-        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "tokenType": "Bearer",
-        "expiresIn": 86400000,
-        "user": {
-            "id": "65a1b2c3d4e5f6g7h8i9j0k1",
-            "username": "johndoe",
-            "email": "john.doe@example.com",
-            "firstName": "John",
-            "lastName": "Doe",
-            "role": "USER"
-        }
-    },
-    "timestamp": "2026-02-01T10:30:00"
+  "name": "Transportation",
+  "description": "Travel and commute expenses",
+  "color": "#3498DB",
+  "icon": "directions_car"
+}
+```
+
+> 📝 **Save this category `id` too!**
+
+---
+
+### Step 6: Get All Categories
+
+```http
+GET http://localhost:8080/api/categories
+Authorization: Bearer <your_access_token>
+```
+
+---
+
+### Step 7: Create Expense (Grocery)
+
+```http
+POST http://localhost:8080/api/expenses
+Authorization: Bearer <your_access_token>
+Content-Type: application/json
+```
+
+```json
+{
+  "title": "Grocery Shopping",
+  "description": "Weekly groceries",
+  "amount": 150.50,
+  "expenseType": "EXPENSE",
+  "expenseDate": "2026-02-01",
+  "categoryId": "<FOOD_CATEGORY_ID>",
+  "notes": "Vegetables and fruits",
+  "recurring": false
+}
+```
+
+> ⚠️ **Replace `<FOOD_CATEGORY_ID>` with actual ID from Step 4!**
+
+---
+
+### Step 8: Create Income (Salary)
+
+```http
+POST http://localhost:8080/api/expenses
+Authorization: Bearer <your_access_token>
+Content-Type: application/json
+```
+
+```json
+{
+  "title": "Monthly Salary",
+  "description": "January salary",
+  "amount": 5000,
+  "expenseType": "INCOME",
+  "expenseDate": "2026-01-31",
+  "categoryId": null,
+  "notes": "Full-time job",
+  "recurring": true,
+  "recurringFrequency": "MONTHLY"
 }
 ```
 
 ---
 
-### 1.2 Login User
-
-Authenticates a user and returns JWT tokens.
+### Step 9: Create Expense (Transportation)
 
 ```http
-POST /api/auth/login
+POST http://localhost:8080/api/expenses
+Authorization: Bearer <your_access_token>
+Content-Type: application/json
 ```
 
-**Request Body:**
 ```json
 {
-    "usernameOrEmail": "johndoe",
-    "password": "SecurePass123!"
+  "title": "Uber Ride",
+  "description": "Office commute",
+  "amount": 25,
+  "expenseType": "EXPENSE",
+  "expenseDate": "2026-02-01",
+  "categoryId": "<TRANSPORT_CATEGORY_ID>",
+  "notes": "Morning ride",
+  "recurring": false
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `usernameOrEmail` | string | ✅ | Username or email address |
-| `password` | string | ✅ | User password |
+> ⚠️ **Replace `<TRANSPORT_CATEGORY_ID>` with actual ID from Step 5!**
 
-**Success Response:** `200 OK`
+---
+
+### Step 10: Get All Expenses
+
+```http
+GET http://localhost:8080/api/expenses
+Authorization: Bearer <your_access_token>
+```
+
+---
+
+### Step 11: Update Expense
+
+```http
+PUT http://localhost:8080/api/expenses/{expenseId}
+Authorization: Bearer <your_access_token>
+Content-Type: application/json
+```
+
 ```json
 {
-    "success": true,
-    "message": "Login successful",
-    "data": {
-        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "tokenType": "Bearer",
-        "expiresIn": 86400000,
-        "user": {
-            "id": "65a1b2c3d4e5f6g7h8i9j0k1",
-            "username": "johndoe",
-            "email": "john.doe@example.com",
-            "firstName": "John",
-            "lastName": "Doe",
-            "role": "USER"
-        }
-    },
-    "timestamp": "2026-02-01T10:30:00"
+  "title": "Grocery Shopping - Updated",
+  "description": "Local market",
+  "amount": 175,
+  "expenseType": "EXPENSE",
+  "expenseDate": "2026-02-01",
+  "categoryId": "<FOOD_CATEGORY_ID>",
+  "notes": "Organic items",
+  "recurring": false
+}
+```
+
+> ⚠️ **Replace `{expenseId}` with actual expense ID!**
+
+---
+
+### Step 12: Delete Expense
+
+```http
+DELETE http://localhost:8080/api/expenses/{expenseId}
+Authorization: Bearer <your_access_token>
+```
+
+> ⚠️ **Replace `{expenseId}` with actual expense ID!**
+
+---
+
+### Step 13: Get Analytics Summary
+
+```http
+GET http://localhost:8080/api/analytics/summary
+Authorization: Bearer <your_access_token>
+```
+
+**Sample Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalExpenses": 175.50,
+    "totalIncome": 5000.00,
+    "balance": 4824.50,
+    "expenseCount": 3,
+    "categoryCount": 2,
+    "expensesByCategory": {
+      "Food category": 150.50,
+      "Transportation": 25.00
+    }
+  }
 }
 ```
 
 ---
 
-## 2. Expense Endpoints
+## 🔧 Postman Setup Tips
 
-### 2.1 Create Expense
+### Setting Authorization Header
 
-Creates a new expense or income entry.
+**Option 1: Manual Header**
+- Add header: `Authorization: Bearer <your_token>`
 
-```http
-POST /api/expenses
-Authorization: Bearer <token>
-```
+**Option 2: Postman Authorization Tab**
+1. Go to **Authorization** tab
+2. Select **Type:** `Bearer Token`
+3. Paste your `accessToken`
 
-**Request Body:**
-```json
-{
-    "title": "Grocery Shopping",
-    "description": "Weekly groceries from supermarket",
-    "amount": 150.50,
-    "expenseType": "EXPENSE",
-    "expenseDate": "2026-02-01",
-    "categoryId": "65a1b2c3d4e5f6g7h8i9j0k1",
-    "notes": "Bought fruits and vegetables",
-    "recurring": false,
-    "recurringFrequency": null
-}
-```
+### Using Environment Variables (Recommended)
 
-| Field | Type | Required | Validation |
-|-------|------|----------|------------|
-| `title` | string | ✅ | Max 100 characters |
-| `description` | string | ❌ | Max 500 characters |
-| `amount` | decimal | ✅ | Must be > 0, max 17 integer digits, 2 decimal |
-| `expenseType` | enum | ✅ | `EXPENSE` or `INCOME` |
-| `expenseDate` | date | ✅ | Format: `YYYY-MM-DD` |
-| `categoryId` | string | ❌ | Valid category ID |
-| `notes` | string | ❌ | Max 500 characters |
-| `recurring` | boolean | ❌ | Default: `false` |
-| `recurringFrequency` | string | ❌ | Max 20 characters (e.g., "WEEKLY", "MONTHLY") |
-
-**Success Response:** `201 Created`
-```json
-{
-    "success": true,
-    "message": "Expense created successfully",
-    "data": {
-        "id": "65a1b2c3d4e5f6g7h8i9j0k2",
-        "title": "Grocery Shopping",
-        "description": "Weekly groceries from supermarket",
-        "amount": 150.50,
-        "expenseType": "EXPENSE",
-        "expenseDate": "2026-02-01",
-        "category": {
-            "id": "65a1b2c3d4e5f6g7h8i9j0k1",
-            "name": "Food & Dining",
-            "description": "Food related expenses",
-            "color": "#FF5733",
-            "icon": "restaurant",
-            "isDefault": false,
-            "expenseCount": 15,
-            "createdAt": "2026-01-15T08:00:00",
-            "updatedAt": "2026-01-15T08:00:00"
-        },
-        "receiptUrl": null,
-        "receiptFilename": null,
-        "notes": "Bought fruits and vegetables",
-        "recurring": false,
-        "recurringFrequency": null,
-        "createdAt": "2026-02-01T10:30:00",
-        "updatedAt": "2026-02-01T10:30:00"
-    },
-    "timestamp": "2026-02-01T10:30:00"
-}
-```
-
----
-
-### 2.2 Get All Expenses
-
-Retrieves all expenses for the authenticated user.
-
-```http
-GET /api/expenses
-Authorization: Bearer <token>
-```
-
-**Success Response:** `200 OK`
-```json
-{
-    "success": true,
-    "message": null,
-    "data": [
-        {
-            "id": "65a1b2c3d4e5f6g7h8i9j0k2",
-            "title": "Grocery Shopping",
-            "description": "Weekly groceries from supermarket",
-            "amount": 150.50,
-            "expenseType": "EXPENSE",
-            "expenseDate": "2026-02-01",
-            "category": {
-                "id": "65a1b2c3d4e5f6g7h8i9j0k1",
-                "name": "Food & Dining",
-                "color": "#FF5733",
-                "icon": "restaurant"
-            },
-            "notes": "Bought fruits and vegetables",
-            "recurring": false,
-            "createdAt": "2026-02-01T10:30:00",
-            "updatedAt": "2026-02-01T10:30:00"
-        }
-    ],
-    "timestamp": "2026-02-01T10:30:00"
-}
-```
-
----
-
-### 2.3 Update Expense
-
-Updates an existing expense.
-
-```http
-PUT /api/expenses/{id}
-Authorization: Bearer <token>
-```
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | string | Expense ID |
-
-**Request Body:**
-```json
-{
-    "title": "Grocery Shopping - Updated",
-    "description": "Weekly groceries from local market",
-    "amount": 175.00,
-    "expenseType": "EXPENSE",
-    "expenseDate": "2026-02-01",
-    "categoryId": "65a1b2c3d4e5f6g7h8i9j0k1",
-    "notes": "Added some organic products",
-    "recurring": false
-}
-```
-
-**Success Response:** `200 OK`
-```json
-{
-    "success": true,
-    "message": "Expense updated successfully",
-    "data": {
-        "id": "65a1b2c3d4e5f6g7h8i9j0k2",
-        "title": "Grocery Shopping - Updated",
-        "amount": 175.00,
-        "updatedAt": "2026-02-01T11:00:00"
-    },
-    "timestamp": "2026-02-01T11:00:00"
-}
-```
-
----
-
-### 2.4 Delete Expense
-
-Deletes an expense.
-
-```http
-DELETE /api/expenses/{id}
-Authorization: Bearer <token>
-```
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | string | Expense ID |
-
-**Success Response:** `200 OK`
-```json
-{
-    "success": true,
-    "message": "Expense deleted successfully",
-    "data": null,
-    "timestamp": "2026-02-01T11:00:00"
-}
-```
-
----
-
-## 3. Category Endpoints
-
-### 3.1 Create Category
-
-Creates a new expense category.
-
-```http
-POST /api/categories
-Authorization: Bearer <token>
-```
-
-**Request Body:**
-```json
-{
-    "name": "Transportation",
-    "description": "Travel and commute expenses",
-    "color": "#3498DB",
-    "icon": "directions_car"
-}
-```
-
-| Field | Type | Required | Validation |
-|-------|------|----------|------------|
-| `name` | string | ✅ | Max 50 characters |
-| `description` | string | ❌ | Max 255 characters |
-| `color` | string | ❌ | Valid hex code (e.g., `#FF5733`), max 7 chars |
-| `icon` | string | ❌ | Icon name, max 50 characters |
-
-**Success Response:** `201 Created`
-```json
-{
-    "success": true,
-    "message": "Category created successfully",
-    "data": {
-        "id": "65a1b2c3d4e5f6g7h8i9j0k3",
-        "name": "Transportation",
-        "description": "Travel and commute expenses",
-        "color": "#3498DB",
-        "icon": "directions_car",
-        "isDefault": false,
-        "expenseCount": 0,
-        "createdAt": "2026-02-01T10:30:00",
-        "updatedAt": "2026-02-01T10:30:00"
-    },
-    "timestamp": "2026-02-01T10:30:00"
-}
-```
-
----
-
-### 3.2 Get All Categories
-
-Retrieves all categories for the authenticated user.
-
-```http
-GET /api/categories
-Authorization: Bearer <token>
-```
-
-**Success Response:** `200 OK`
-```json
-{
-    "success": true,
-    "message": null,
-    "data": [
-        {
-            "id": "65a1b2c3d4e5f6g7h8i9j0k1",
-            "name": "Food & Dining",
-            "description": "Food related expenses",
-            "color": "#FF5733",
-            "icon": "restaurant",
-            "isDefault": true,
-            "expenseCount": 15,
-            "createdAt": "2026-01-15T08:00:00",
-            "updatedAt": "2026-01-15T08:00:00"
-        },
-        {
-            "id": "65a1b2c3d4e5f6g7h8i9j0k3",
-            "name": "Transportation",
-            "description": "Travel and commute expenses",
-            "color": "#3498DB",
-            "icon": "directions_car",
-            "isDefault": false,
-            "expenseCount": 8,
-            "createdAt": "2026-02-01T10:30:00",
-            "updatedAt": "2026-02-01T10:30:00"
-        }
-    ],
-    "timestamp": "2026-02-01T10:30:00"
-}
-```
-
----
-
-## 4. Analytics Endpoints
-
-### 4.1 Get Summary
-
-Retrieves expense analytics and summary for the authenticated user.
-
-```http
-GET /api/analytics/summary
-Authorization: Bearer <token>
-```
-
-**Success Response:** `200 OK`
-```json
-{
-    "success": true,
-    "message": null,
-    "data": {
-        "totalExpenses": 2500.75,
-        "totalIncome": 5000.00,
-        "balance": 2499.25,
-        "expenseCount": 25,
-        "categoryCount": 5,
-        "expensesByCategory": {
-            "Food & Dining": 850.50,
-            "Transportation": 450.00,
-            "Entertainment": 300.25,
-            "Utilities": 500.00,
-            "Shopping": 400.00
-        }
-    },
-    "timestamp": "2026-02-01T10:30:00"
-}
-```
-
-**Response Fields:**
-| Field | Type | Description |
-|-------|------|-------------|
-| `totalExpenses` | decimal | Sum of all expenses |
-| `totalIncome` | decimal | Sum of all income entries |
-| `balance` | decimal | Income minus expenses |
-| `expenseCount` | integer | Total number of expense records |
-| `categoryCount` | integer | Number of categories used |
-| `expensesByCategory` | object | Breakdown of expenses by category name |
-
----
-
-## 5. User Profile Endpoints
-
-### 5.1 Get Current User
-
-Retrieves the profile of the authenticated user.
-
-```http
-GET /api/users/me
-Authorization: Bearer <token>
-```
-
-**Success Response:** `200 OK`
-```json
-{
-    "success": true,
-    "message": null,
-    "data": {
-        "id": "65a1b2c3d4e5f6g7h8i9j0k1",
-        "username": "johndoe",
-        "email": "john.doe@example.com",
-        "firstName": "John",
-        "lastName": "Doe",
-        "role": "USER",
-        "monthlyBudget": 3000.00,
-        "createdAt": "2026-01-01T00:00:00",
-        "updatedAt": "2026-02-01T10:00:00"
-    },
-    "timestamp": "2026-02-01T10:30:00"
-}
-```
+1. Create a Postman Environment
+2. Add variables:
+   - `baseUrl` = `http://localhost:8080`
+   - `token` = (update after login)
+3. Use `{{baseUrl}}/api/expenses` in requests
+4. Use `{{token}}` in Authorization
 
 ---
 
 ## ⚠️ Error Handling
 
-All errors follow a consistent format:
+### Standard Error Response
 
 ```json
 {
-    "success": false,
-    "message": "Error description",
-    "error": {
-        "code": "ERROR_CODE",
-        "details": "Detailed error message",
-        "timestamp": "2026-02-01T10:30:00",
-        "path": "/api/expenses"
-    }
+  "success": false,
+  "message": "Error description",
+  "timestamp": "2026-02-01T10:30:00"
 }
 ```
 
 ### HTTP Status Codes
 
-| Status Code | Description |
-|-------------|-------------|
+| Code | Description |
+|------|-------------|
 | `200` | OK - Request successful |
-| `201` | Created - Resource created successfully |
-| `400` | Bad Request - Invalid request data |
-| `401` | Unauthorized - Invalid or missing token |
-| `403` | Forbidden - Insufficient permissions |
+| `201` | Created - Resource created |
+| `400` | Bad Request - Invalid data |
+| `401` | Unauthorized - Invalid/missing token |
+| `403` | Forbidden - Access denied |
 | `404` | Not Found - Resource not found |
 | `409` | Conflict - Duplicate resource |
-| `422` | Unprocessable Entity - Validation failed |
-| `500` | Internal Server Error - Server error |
+| `500` | Server Error |
 
-### Validation Errors
+### Common Errors
 
+**401 Unauthorized:**
 ```json
 {
-    "success": false,
-    "message": "Validation failed",
-    "errors": [
-        {
-            "field": "email",
-            "message": "Email must be valid"
-        },
-        {
-            "field": "password",
-            "message": "Password must be between 8 and 100 characters"
-        }
-    ],
-    "timestamp": "2026-02-01T10:30:00"
+  "success": false,
+  "message": "Full authentication is required"
+}
+```
+
+**404 Not Found:**
+```json
+{
+  "success": false,
+  "message": "Expense not found with id: xxx"
+}
+```
+
+**409 Duplicate:**
+```json
+{
+  "success": false,
+  "message": "User already exists with username: 'johndoe'"
 }
 ```
 
@@ -666,45 +468,30 @@ All errors follow a consistent format:
 
 ## 🔒 Security
 
-- **JWT Authentication**: Secure token-based authentication
-- **Password Encryption**: BCrypt password hashing
-- **Role-Based Access**: USER and ADMIN roles
-- **Input Validation**: Comprehensive request validation
-- **CORS Configuration**: Configurable cross-origin settings
+- **JWT Authentication** - Secure token-based auth
+- **BCrypt Encryption** - Password hashing
+- **Role-Based Access** - USER and ADMIN roles
+- **Input Validation** - Request validation
+- **CORS Configuration** - Cross-origin settings
 
 ### Token Usage
 
-1. Register or login to receive tokens
-2. Include the access token in subsequent requests:
-   ```
-   Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   ```
-3. Use refresh token to obtain new access token when expired
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-mvn test
-
-# Run with coverage report
-mvn test jacoco:report
-```
+1. Register or login to get tokens
+2. Add to requests: `Authorization: Bearer <token>`
+3. Tokens expire after 24 hours
 
 ---
 
 ## 📦 Build & Deploy
 
 ```bash
-# Build JAR file
+# Build JAR
 mvn clean package -DskipTests
 
 # Run JAR
 java -jar target/expense-tracker-1.0.0.jar
 
-# Docker build (if Dockerfile exists)
+# Docker (if available)
 docker build -t expense-tracker:latest .
 docker run -p 8080:8080 expense-tracker:latest
 ```
@@ -714,16 +501,16 @@ docker run -p 8080:8080 expense-tracker:latest
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ---
 
