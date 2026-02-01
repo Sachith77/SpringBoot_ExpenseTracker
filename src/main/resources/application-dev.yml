@@ -7,27 +7,13 @@ spring:
     activate:
       on-profile: dev
 
-  # Use H2 for development
-  datasource:
-    url: jdbc:h2:mem:expense_tracker_dev
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  # MongoDB Atlas for development
+  data:
+    mongodb:
+      uri: mongodb+srv://sachith24bcs10403_db_user:expense-tracker-pass@expense-tracker-cluster.ikio4ur.mongodb.net/expense_tracker_dev?retryWrites=true&w=majority&appName=expense-tracker-cluster
+      auto-index-creation: true
 
 logging:
   level:
     com.expensetracker: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.data.mongodb: DEBUG

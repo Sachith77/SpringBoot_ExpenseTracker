@@ -1,9 +1,13 @@
 package com.expensetracker.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,13 +18,10 @@ import java.util.Objects;
  * Expense entity representing financial transactions.
  * Supports both expenses and income entries.
  */
-@Entity
-@Table(name = "expenses", indexes = {
-    @Index(name = "idx_expense_user", columnList = "user_id"),
-    @Index(name = "idx_expense_category", columnList = "category_id"),
-    @Index(name = "idx_expense_date", columnList = "expense_date"),
-    @Index(name = "idx_expense_user_date", columnList = "user_id, expense_date"),
-    @Index(name = "idx_expense_type", columnList = "expense_type")
+@Document(collection = "expenses")
+@CompoundIndexes({
+    @CompoundIndex(name = "idx_expense_user_date", def = "{'userId': 1, 'expenseDate': -1}"),
+    @CompoundIndex(name = "idx_expense_user_category", def = "{'userId': 1, 'categoryId': 1}")
 })
 @Getter
 @Setter
@@ -30,56 +31,46 @@ import java.util.Objects;
 public class Expense {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(length = 500)
     private String description;
 
-    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "expense_type", nullable = false)
     @Builder.Default
     private ExpenseType expenseType = ExpenseType.EXPENSE;
 
-    @Column(name = "expense_date", nullable = false)
+    @Indexed
     private LocalDate expenseDate;
 
-    @Column(name = "receipt_url", length = 500)
     private String receiptUrl;
 
-    @Column(name = "receipt_filename", length = 255)
     private String receiptFilename;
 
-    @Column(length = 500)
     private String notes;
 
-    @Column(name = "is_recurring")
     @Builder.Default
     private boolean recurring = false;
 
-    @Column(name = "recurring_frequency", length = 20)
     private String recurringFrequency; // DAILY, WEEKLY, MONTHLY, YEARLY
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Indexed
+    private String userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
+    @Indexed
+    private String categoryId;
+    
+    // Denormalized category info for faster queries
+    private String categoryName;
+    private String categoryColor;
+    private String categoryIcon;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
     @Override

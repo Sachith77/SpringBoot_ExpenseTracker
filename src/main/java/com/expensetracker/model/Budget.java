@@ -1,9 +1,13 @@
 package com.expensetracker.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,11 +17,10 @@ import java.util.Objects;
 /**
  * Budget entity for setting monthly budget limits per category.
  */
-@Entity
-@Table(name = "budgets", indexes = {
-    @Index(name = "idx_budget_user", columnList = "user_id"),
-    @Index(name = "idx_budget_category", columnList = "category_id"),
-    @Index(name = "idx_budget_month", columnList = "budget_month")
+@Document(collection = "budgets")
+@CompoundIndexes({
+    @CompoundIndex(name = "idx_budget_user_month", def = "{'userId': 1, 'budgetMonth': -1}"),
+    @CompoundIndex(name = "idx_budget_user_category_month", def = "{'userId': 1, 'categoryId': 1, 'budgetMonth': 1}")
 })
 @Getter
 @Setter
@@ -27,41 +30,31 @@ import java.util.Objects;
 public class Budget {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "budget_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal budgetAmount;
 
-    @Column(name = "spent_amount", precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal spentAmount = BigDecimal.ZERO;
 
-    @Column(name = "budget_month", nullable = false)
+    @Indexed
     private YearMonth budgetMonth;
 
-    @Column(name = "alert_threshold", precision = 5, scale = 2)
     @Builder.Default
     private BigDecimal alertThreshold = new BigDecimal("80.00"); // 80% by default
 
-    @Column(name = "alert_sent")
     @Builder.Default
     private boolean alertSent = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Indexed
+    private String userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
+    private String categoryId;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
     // Business logic methods

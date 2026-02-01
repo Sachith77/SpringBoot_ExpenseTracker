@@ -1,9 +1,11 @@
 package com.expensetracker.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,11 +18,7 @@ import java.util.*;
  * User entity representing authenticated users in the system.
  * Implements UserDetails for Spring Security integration.
  */
-@Entity
-@Table(name = "users", indexes = {
-    @Index(name = "idx_user_email", columnList = "email", unique = true),
-    @Index(name = "idx_user_username", columnList = "username", unique = true)
-})
+@Document(collection = "users")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,63 +27,42 @@ import java.util.*;
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Indexed(unique = true)
     private String username;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Indexed(unique = true)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
-    @Column(name = "first_name", length = 50)
     private String firstName;
 
-    @Column(name = "last_name", length = 50)
     private String lastName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     @Builder.Default
     private Role role = Role.USER;
 
-    @Column(name = "monthly_budget", precision = 19, scale = 2)
     @Builder.Default
     private BigDecimal monthlyBudget = BigDecimal.ZERO;
 
-    @Column(name = "is_enabled")
     @Builder.Default
     private boolean enabled = true;
 
-    @Column(name = "is_account_non_expired")
     @Builder.Default
     private boolean accountNonExpired = true;
 
-    @Column(name = "is_account_non_locked")
     @Builder.Default
     private boolean accountNonLocked = true;
 
-    @Column(name = "is_credentials_non_expired")
     @Builder.Default
     private boolean credentialsNonExpired = true;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<Expense> expenses = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<Category> categories = new ArrayList<>();
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
     // UserDetails implementation
@@ -112,27 +89,6 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return enabled;
-    }
-
-    // Helper methods
-    public void addExpense(Expense expense) {
-        expenses.add(expense);
-        expense.setUser(this);
-    }
-
-    public void removeExpense(Expense expense) {
-        expenses.remove(expense);
-        expense.setUser(null);
-    }
-
-    public void addCategory(Category category) {
-        categories.add(category);
-        category.setUser(this);
-    }
-
-    public void removeCategory(Category category) {
-        categories.remove(category);
-        category.setUser(null);
     }
 
     @Override

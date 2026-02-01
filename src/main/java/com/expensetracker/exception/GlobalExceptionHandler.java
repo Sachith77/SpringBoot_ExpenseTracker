@@ -1,6 +1,6 @@
 package com.expensetracker.exception;
 
-import com.expensetracker.dto.common.ApiErrorResponse;
+import com.expensetracker.dto.response.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;

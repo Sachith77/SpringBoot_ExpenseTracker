@@ -1,6 +1,6 @@
 package com.expensetracker.config;
 
-import com.expensetracker.dto.common.ApiErrorResponse;
+import com.expensetracker.dto.response.ApiErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

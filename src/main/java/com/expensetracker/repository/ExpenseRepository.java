@@ -4,118 +4,51 @@ import com.expensetracker.model.Expense;
 import com.expensetracker.model.ExpenseType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Repository for Expense entity operations.
- * Implements JpaSpecificationExecutor for complex dynamic queries.
  */
 @Repository
-public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpecificationExecutor<Expense> {
+public interface ExpenseRepository extends MongoRepository<Expense, String> {
 
     // Basic CRUD with user context
-    Optional<Expense> findByIdAndUserId(Long id, Long userId);
+    Optional<Expense> findByIdAndUserId(String id, String userId);
 
-    Page<Expense> findByUserId(Long userId, Pageable pageable);
+    Page<Expense> findByUserId(String userId, Pageable pageable);
 
-    Page<Expense> findByUserIdAndCategoryId(Long userId, Long categoryId, Pageable pageable);
+    Page<Expense> findByUserIdAndCategoryId(String userId, String categoryId, Pageable pageable);
 
     // Date range queries
-    @Query("SELECT e FROM Expense e WHERE e.user.id = :userId AND e.expenseDate BETWEEN :startDate AND :endDate")
-    Page<Expense> findByUserIdAndDateRange(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate,
-            Pageable pageable
-    );
+    @Query("{ 'userId': ?0, 'expenseDate': { '$gte': ?1, '$lte': ?2 } }")
+    Page<Expense> findByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate, Pageable pageable);
 
-    // Sum queries for analytics
-    @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e WHERE e.user.id = :userId AND e.expenseType = :type AND e.expenseDate BETWEEN :startDate AND :endDate")
-    BigDecimal sumAmountByUserIdAndTypeAndDateRange(
-            @Param("userId") Long userId,
-            @Param("type") ExpenseType type,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
+    @Query("{ 'userId': ?0, 'expenseDate': { '$gte': ?1, '$lte': ?2 } }")
+    List<Expense> findByUserIdAndDateRangeList(String userId, LocalDate startDate, LocalDate endDate);
 
-    // Monthly summary query
-    @Query("SELECT e.category.id, e.category.name, e.category.color, SUM(e.amount), COUNT(e) " +
-           "FROM Expense e WHERE e.user.id = :userId AND e.expenseType = 'EXPENSE' " +
-           "AND e.expenseDate BETWEEN :startDate AND :endDate " +
-           "GROUP BY e.category.id, e.category.name, e.category.color " +
-           "ORDER BY SUM(e.amount) DESC")
-    List<Object[]> findMonthlyCategoryBreakdown(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
-    // Category-wise spending
-    @Query("SELECT e.category.id, e.category.name, e.category.color, e.category.icon, " +
-           "SUM(e.amount), COUNT(e), AVG(e.amount), MAX(e.amount), MIN(e.amount) " +
-           "FROM Expense e WHERE e.user.id = :userId AND e.expenseType = 'EXPENSE' " +
-           "AND e.expenseDate BETWEEN :startDate AND :endDate " +
-           "GROUP BY e.category.id, e.category.name, e.category.color, e.category.icon " +
-           "ORDER BY SUM(e.amount) DESC")
-    List<Object[]> findCategoryWiseSpending(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
-    // Yearly report - monthly data
-    @Query("SELECT MONTH(e.expenseDate), e.expenseType, SUM(e.amount), COUNT(e) " +
-           "FROM Expense e WHERE e.user.id = :userId AND YEAR(e.expenseDate) = :year " +
-           "GROUP BY MONTH(e.expenseDate), e.expenseType " +
-           "ORDER BY MONTH(e.expenseDate)")
-    List<Object[]> findYearlyMonthlyData(
-            @Param("userId") Long userId,
-            @Param("year") int year
-    );
-
-    // Daily expense trend
-    @Query("SELECT e.expenseDate, SUM(e.amount), COUNT(e) " +
-           "FROM Expense e WHERE e.user.id = :userId AND e.expenseType = 'EXPENSE' " +
-           "AND e.expenseDate BETWEEN :startDate AND :endDate " +
-           "GROUP BY e.expenseDate " +
-           "ORDER BY e.expenseDate")
-    List<Object[]> findDailyExpenseTrend(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
+    // Find by type and date range
+    @Query("{ 'userId': ?0, 'expenseType': ?1, 'expenseDate': { '$gte': ?2, '$lte': ?3 } }")
+    List<Expense> findByUserIdAndTypeAndDateRange(String userId, ExpenseType type, LocalDate startDate, LocalDate endDate);
 
     // Count queries
-    @Query("SELECT COUNT(e) FROM Expense e WHERE e.user.id = :userId AND e.expenseDate BETWEEN :startDate AND :endDate")
-    long countByUserIdAndDateRange(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
-    // Top categories for yearly report
-    @Query("SELECT e.category.id, e.category.name, e.category.color, SUM(e.amount) " +
-           "FROM Expense e WHERE e.user.id = :userId AND e.expenseType = 'EXPENSE' " +
-           "AND YEAR(e.expenseDate) = :year " +
-           "GROUP BY e.category.id, e.category.name, e.category.color " +
-           "ORDER BY SUM(e.amount) DESC")
-    List<Object[]> findTopCategoriesForYear(
-            @Param("userId") Long userId,
-            @Param("year") int year
-    );
+    @Query(value = "{ 'userId': ?0, 'expenseDate': { '$gte': ?1, '$lte': ?2 } }", count = true)
+    long countByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate);
 
     // Check for existing expenses in category
-    boolean existsByCategoryId(Long categoryId);
+    boolean existsByCategoryId(String categoryId);
+
+    // Count expenses by category
+    long countByCategoryId(String categoryId);
 
     // Find recurring expenses
-    List<Expense> findByUserIdAndRecurringTrue(Long userId);
+    List<Expense> findByUserIdAndRecurringTrue(String userId);
+
+    // Find by user and expense type
+    List<Expense> findByUserIdAndExpenseType(String userId, ExpenseType expenseType);
 }

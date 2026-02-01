@@ -1,9 +1,8 @@
 package com.expensetracker.repository;
 
 import com.expensetracker.model.Budget;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.YearMonth;
@@ -14,28 +13,25 @@ import java.util.Optional;
  * Repository for Budget entity operations.
  */
 @Repository
-public interface BudgetRepository extends JpaRepository<Budget, Long> {
+public interface BudgetRepository extends MongoRepository<Budget, String> {
 
-    Optional<Budget> findByIdAndUserId(Long id, Long userId);
+    Optional<Budget> findByIdAndUserId(String id, String userId);
 
-    List<Budget> findByUserIdAndBudgetMonth(Long userId, YearMonth budgetMonth);
+    List<Budget> findByUserIdAndBudgetMonth(String userId, YearMonth budgetMonth);
 
-    Optional<Budget> findByUserIdAndCategoryIdAndBudgetMonth(Long userId, Long categoryId, YearMonth budgetMonth);
+    Optional<Budget> findByUserIdAndCategoryIdAndBudgetMonth(String userId, String categoryId, YearMonth budgetMonth);
 
-    Optional<Budget> findByUserIdAndCategoryIsNullAndBudgetMonth(Long userId, YearMonth budgetMonth);
+    Optional<Budget> findByUserIdAndCategoryIdIsNullAndBudgetMonth(String userId, YearMonth budgetMonth);
 
-    @Query("SELECT b FROM Budget b WHERE b.user.id = :userId ORDER BY b.budgetMonth DESC")
-    List<Budget> findByUserIdOrderByBudgetMonthDesc(@Param("userId") Long userId);
+    List<Budget> findByUserIdOrderByBudgetMonthDesc(String userId);
 
-    @Query("SELECT b FROM Budget b WHERE b.user.id = :userId AND b.alertSent = false AND " +
-           "(b.spentAmount / b.budgetAmount * 100) >= b.alertThreshold")
-    List<Budget> findBudgetsNeedingAlert(@Param("userId") Long userId);
+    @Query("{ 'userId': ?0, 'alertSent': false, '$expr': { '$gte': [ { '$multiply': [ { '$divide': ['$spentAmount', '$budgetAmount'] }, 100 ] }, '$alertThreshold' ] } }")
+    List<Budget> findBudgetsNeedingAlert(String userId);
 
-    @Query("SELECT b FROM Budget b WHERE b.alertSent = false AND " +
-           "(b.spentAmount / b.budgetAmount * 100) >= b.alertThreshold")
+    @Query("{ 'alertSent': false, '$expr': { '$gte': [ { '$multiply': [ { '$divide': ['$spentAmount', '$budgetAmount'] }, 100 ] }, '$alertThreshold' ] } }")
     List<Budget> findAllBudgetsNeedingAlert();
 
-    boolean existsByUserIdAndCategoryIdAndBudgetMonth(Long userId, Long categoryId, YearMonth budgetMonth);
+    boolean existsByUserIdAndCategoryIdAndBudgetMonth(String userId, String categoryId, YearMonth budgetMonth);
 
-    boolean existsByUserIdAndCategoryIsNullAndBudgetMonth(Long userId, YearMonth budgetMonth);
+    boolean existsByUserIdAndCategoryIdIsNullAndBudgetMonth(String userId, YearMonth budgetMonth);
 }
